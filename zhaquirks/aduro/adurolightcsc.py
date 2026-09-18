@@ -1,10 +1,9 @@
 """ADUROLIGHT ADUROLIGHT_CSC device."""
 
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from zigpy.profiles import zll
-from zigpy.quirks import CustomDevice
 import zigpy.types as t
 from zigpy.zcl.clusters.general import (
     Basic,
@@ -38,6 +37,7 @@ from zhaquirks.const import (
     TOGGLE,
     ZHA_SEND_EVENT,
 )
+from zhaquirks.legacy import CustomDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,9 +72,8 @@ class AdurolightRemoteCluster(EventableCluster):
         hdr: ZCLHeader,
         args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
+        | None = None,
     ):
         """Handle the cluster command."""
         if hdr.command_id == ADUROLIGHT_REMOTE_COMMAND_BUTTON_EVENT:

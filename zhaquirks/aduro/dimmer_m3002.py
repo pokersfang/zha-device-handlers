@@ -2,12 +2,12 @@
 
 from typing import Final
 
-from zigpy.quirks import CustomCluster
-from zigpy.quirks.v2 import QuirkBuilder
-from zigpy.quirks.v2.homeassistant import PERCENTAGE, UnitOfTime
 import zigpy.types as t
 from zigpy.zcl.clusters.general import Basic
 from zigpy.zcl.foundation import ZCLAttributeDef
+
+from zhaquirks.builder import PERCENTAGE, QuirkBuilder, UnitOfTime
+from zhaquirks.clusters import CustomCluster
 
 
 class LoadControlMode(t.enum8):
@@ -126,7 +126,7 @@ class AduroDimmerBasicCluster(CustomCluster, Basic):
         attribute_name=AduroDimmerBasicCluster.AttributeDefs.invert_switch.name,
         cluster_id=AduroDimmerBasicCluster.cluster_id,
         translation_key="invert_switch",
-        fallback_name="Invert Switch",
+        fallback_name="Invert switch",
     )
     .switch(
         attribute_name=AduroDimmerBasicCluster.AttributeDefs.scene_activation.name,

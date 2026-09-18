@@ -2,16 +2,11 @@
 
 import logging
 import math
-from typing import Any, Final, Optional, Union
+from typing import Any, Final, Union
 
-from zigpy.quirks import CustomCluster
-from zigpy.quirks.v2 import (
-    QuirkBuilder,
-    ReportingConfig,
-    SensorDeviceClass,
-    SensorStateClass,
-)
 import zigpy.types as t
+from zigpy.zcl.clusters.general import PowerConfiguration
+from zigpy.zcl.clusters.measurement import RelativeHumidity, TemperatureMeasurement
 from zigpy.zcl.foundation import (
     BaseAttributeDefs,
     BaseCommandDefs,
@@ -19,6 +14,17 @@ from zigpy.zcl.foundation import (
     ZCLCommandDef,
     ZCLHeader,
 )
+
+from zhaquirks.builder import (
+    PERCENTAGE,
+    EntityType,
+    QuirkBuilder,
+    ReportingConfig,
+    SensorDeviceClass,
+    SensorStateClass,
+    UnitOfTemperature,
+)
+from zhaquirks.clusters import CustomCluster
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,9 +93,8 @@ class AduroSmartAccelCluster(CustomCluster):
         hdr: ZCLHeader,
         args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
+        | None = None,
     ):
         """Handle the cluster command."""
         if hdr.command_id == ADUROLIGHT_ACCEL_COMMAND_REPORT_DATA:
@@ -112,12 +117,13 @@ class AduroSmartAccelCluster(CustomCluster):
 
 (
     QuirkBuilder("AduroSmart ERIA", "CSW_81909")
+    .applies_to("AduroSmart Eria", "CSW_81909")
+    .applies_to("ERIA", "CSW_81909")
     .replaces(AduroSmartAccelCluster)
     .sensor(
         AduroSmartAccelCluster.AttributeDefs.x_axis.name,
         AduroSmartAccelCluster.cluster_id,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.ACCELERATION,
         translation_key="x_axis",
         fallback_name="X-Axis",
         reporting_config=ReportingConfig(
@@ -130,7 +136,6 @@ class AduroSmartAccelCluster(CustomCluster):
         AduroSmartAccelCluster.AttributeDefs.y_axis.name,
         AduroSmartAccelCluster.cluster_id,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.ACCELERATION,
         translation_key="y_axis",
         fallback_name="Y-Axis",
         reporting_config=ReportingConfig(
@@ -143,13 +148,73 @@ class AduroSmartAccelCluster(CustomCluster):
         AduroSmartAccelCluster.AttributeDefs.z_axis.name,
         AduroSmartAccelCluster.cluster_id,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.ACCELERATION,
         translation_key="z_axis",
         fallback_name="Z-Axis",
         reporting_config=ReportingConfig(
             min_interval=1,
             max_interval=65535,
             reportable_change=0,
+        ),
+    )
+    .prevent_default_entity_creation(
+        endpoint_id=1,
+        cluster_id=PowerConfiguration.cluster_id,
+        function=lambda entity: entity.__class__.__name__ == "Battery",
+    )
+    .sensor(
+        attribute_name=PowerConfiguration.AttributeDefs.battery_percentage_remaining.name,
+        cluster_id=PowerConfiguration.cluster_id,
+        divisor=2,
+        unit=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_type=EntityType.DIAGNOSTIC,
+        unique_id_suffix=str(PowerConfiguration.cluster_id),
+        fallback_name="Battery",
+        reporting_config=ReportingConfig(
+            min_interval=3600,
+            max_interval=65000,
+            reportable_change=2,
+        ),
+    )
+    .prevent_default_entity_creation(
+        endpoint_id=1,
+        cluster_id=TemperatureMeasurement.cluster_id,
+        function=lambda entity: entity.__class__.__name__ == "Temperature",
+    )
+    .sensor(
+        attribute_name=TemperatureMeasurement.AttributeDefs.measured_value.name,
+        cluster_id=TemperatureMeasurement.cluster_id,
+        divisor=100,
+        unit=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        unique_id_suffix=str(TemperatureMeasurement.cluster_id),
+        fallback_name="Temperature",
+        reporting_config=ReportingConfig(
+            min_interval=10,
+            max_interval=3600,
+            reportable_change=100,
+        ),
+    )
+    .prevent_default_entity_creation(
+        endpoint_id=1,
+        cluster_id=RelativeHumidity.cluster_id,
+        function=lambda entity: entity.__class__.__name__ == "Humidity",
+    )
+    .sensor(
+        attribute_name=RelativeHumidity.AttributeDefs.measured_value.name,
+        cluster_id=RelativeHumidity.cluster_id,
+        divisor=100,
+        unit=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        unique_id_suffix=str(RelativeHumidity.cluster_id),
+        fallback_name="Humidity",
+        reporting_config=ReportingConfig(
+            min_interval=10,
+            max_interval=3600,
+            reportable_change=100,
         ),
     )
     .add_to_registry()
